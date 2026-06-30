@@ -16,7 +16,7 @@ from pathlib import Path
 # 1. Load data
 BASE_DIR = Path(__file__).resolve().parents[1]
 FILES_DIR = BASE_DIR / "outputs"
-VIS_DIR = BASE_DIR / "figures"
+VIS_DIR = BASE_DIR / "figures" / "eng"
 DATA_PATH = FILES_DIR / "metrics_results_full.csv"
 VIS_DIR.mkdir(parents=True, exist_ok=True)
 df = pd.read_csv(DATA_PATH)

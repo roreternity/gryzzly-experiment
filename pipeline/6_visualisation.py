@@ -25,7 +25,7 @@ ORANGE = '#EA580C'
 GRAY   = '#6B7280'
 BASE_DIR  = Path(__file__).resolve().parents[1]
 FILES_DIR = BASE_DIR / "outputs"
-OUT       = BASE_DIR / "figures"
+OUT       = BASE_DIR / "figures" / "eng"
 OUT.mkdir(parents=True, exist_ok=True)
 
 # Load empirical-triangle results and merge in extra columns from the full run
