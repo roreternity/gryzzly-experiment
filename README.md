@@ -196,18 +196,35 @@ Re-runs simulations with empirically calibrated PERT bounds (low=0.15×, high=1.
 
 ## Output figures
 
+### Main analysis (pipeline/6_visualisation.py)
+
 <table>
 <tr>
-<td><img src="figures/A_risk_distribution.png" width="380"/><br><sub>A — Schedule risk ratio distribution</sub></td>
-<td><img src="figures/B_det_vs_p50.png" width="300"/><br><sub>B — CPM vs Monte Carlo P50</sub></td>
+<td><img src="figures/A_risk_distribution.png" width="380"/><br><sub>A — Schedule reserve distribution</sub></td>
+<td><img src="figures/D_risk_vs_size.png" width="380"/><br><sub>D — Reserve by project size</sub></td>
 </tr>
 <tr>
+<td><img src="figures/B_det_vs_p50.png" width="300"/><br><sub>B — CPM vs Monte Carlo P50</sub></td>
 <td><img src="figures/C_p50_vs_p90.png" width="300"/><br><sub>C — P50 vs P90 spread</sub></td>
-<td><img src="figures/D_risk_vs_size.png" width="380"/><br><sub>D — Risk by project size</sub></td>
 </tr>
 <tr>
 <td><img src="figures/F_spearman_correlation.png" width="340"/><br><sub>F — Spearman correlation matrix</sub></td>
-<td></td>
+<td><img src="figures/E_summary_table.png" width="340"/><br><sub>E — Summary statistics table</sub></td>
+</tr>
+</table>
+
+### Random Forest diagnostics (pipeline/4_rf_duration.py, pipeline/5_rf_risk.py)
+
+<table>
+<tr>
+<td><img src="figures/rf_duration_actual_vs_predicted.png" width="300"/><br><sub>Duration — actual vs predicted</sub></td>
+<td><img src="figures/rf_duration_feature_importance.png" width="300"/><br><sub>Duration — feature importance</sub></td>
+<td><img src="figures/rf_duration_error_distribution.png" width="300"/><br><sub>Duration — error distribution</sub></td>
+</tr>
+<tr>
+<td><img src="figures/rf_risk_actual_vs_predicted.png" width="300"/><br><sub>Reserve — actual vs predicted</sub></td>
+<td><img src="figures/rf_risk_feature_importance.png" width="300"/><br><sub>Reserve — feature importance</sub></td>
+<td><img src="figures/rf_risk_error_distribution.png" width="300"/><br><sub>Reserve — error distribution</sub></td>
 </tr>
 </table>
 
