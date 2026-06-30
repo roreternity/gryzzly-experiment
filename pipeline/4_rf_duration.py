@@ -79,7 +79,7 @@ plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--', lw=2
 plt.xlabel('Actual duration, days')
 plt.ylabel('Predicted duration, days')
 plt.title('Actual vs Predicted (Random Forest)')
-plt.savefig(VIS_DIR / 'actual_vs_predicted_rf.png')
+plt.savefig(VIS_DIR / 'rf_duration_actual_vs_predicted.png')
 plt.close()
 
 # 8.2 Error distribution
@@ -88,7 +88,7 @@ plt.figure(figsize=(10, 6))
 sns.histplot(errors, bins=50, kde=True)
 plt.xlabel('Error, days')
 plt.title('Error distribution (Random Forest)')
-plt.savefig(VIS_DIR / 'error_distribution_rf.png')
+plt.savefig(VIS_DIR / 'rf_duration_error_distribution.png')
 plt.close()
 
 # 8.3 Feature-importance bar chart
@@ -98,5 +98,5 @@ ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha='right')  # rotate labe
 plt.title('Feature Importance (Random Forest)')
 plt.ylabel('Contribution')
 plt.tight_layout()
-plt.savefig(VIS_DIR / 'feature_importance_rf.png')
+plt.savefig(VIS_DIR / 'rf_duration_feature_importance.png')
 plt.close()
