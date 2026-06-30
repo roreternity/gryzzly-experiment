@@ -224,7 +224,6 @@ The raw data is the **Gryzzly public dataset**:
 
 > Abitbol, J.L., Arod, L. *Seven years of time-tracking data from a project management platform.* Scientific Data 12, 578 (2025). https://doi.org/10.1038/s41597-025-04903-2
 
-The CSVs are not committed to this repo. Download from the link above and place under `csvs/` as:
 
 ```
 csvs/users.csv
