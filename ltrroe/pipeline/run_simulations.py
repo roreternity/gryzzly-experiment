@@ -6,20 +6,17 @@ Output: metrics_results_full.csv and a console summary.
 import pickle
 import csv
 import random
-import sys
 from pathlib import Path
 from statistics import mean, median, stdev
-import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-import ltrroe_objects
-from ltrroe_objects import Dependency
-from algorithms import calculate_schedule, calculate_backward_pass, monte_carlo_simulation
+import ltrroe.core.objects as ltrroe_objects
+from ltrroe.core.objects import Dependency
+from ltrroe.core.algorithms import calculate_schedule, calculate_backward_pass, monte_carlo_simulation
 
 RANDOM_SEED     = 42
 NUM_SIMULATIONS = 10000
 MIN_TASKS       = 4
 MIN_EMPLOYEES   = 1
-FILES_DIR       = Path(__file__).resolve().parents[1] / "outputs"
+FILES_DIR = Path(__file__).resolve().parents[3] / "outputs"
 PROJECTS_PKL    = FILES_DIR / "ltrroe_real_projects.pkl"
 OUTPUT_CSV      = FILES_DIR / "metrics_results_full.csv"
 

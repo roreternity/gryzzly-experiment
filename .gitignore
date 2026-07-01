@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Data and generated outputs
+data/
+outputs/
+figures/ru/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

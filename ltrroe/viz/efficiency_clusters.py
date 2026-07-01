@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parents[1]
+BASE_DIR = Path(__file__).resolve().parents[3]
 FILES_DIR = BASE_DIR / "outputs"
 VIS_DIR = BASE_DIR / "figures" / "eng"
 VIS_DIR.mkdir(parents=True, exist_ok=True)
