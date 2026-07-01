@@ -154,7 +154,6 @@ Produces figures A–F in `figures/eng/`:
 | B | CPM duration vs Monte Carlo P50 (scatter + regression) |
 | C | P50 vs P90 uncertainty spread |
 | D | Median risk ratio by project size (task-count bins) |
-| E | Summary statistics table |
 | F | Spearman correlation matrix |
 
 ### Step 4 — ML experiments (optional)
@@ -190,7 +189,6 @@ Re-runs simulations with empirically calibrated PERT bounds (low=0.15×, high=1.
 </tr>
 <tr>
 <td><img src="figures/eng/F_spearman_correlation.png" width="340"/><br><sub>F — Spearman correlation matrix</sub></td>
-<td><img src="figures/eng/E_summary_table.png" width="340"/><br><sub>E — Summary statistics table</sub></td>
 </tr>
 </table>
 
@@ -217,7 +215,6 @@ The raw data is the **Gryzzly public dataset**:
 
 > Abitbol, J.L., Arod, L. *Seven years of time-tracking data from a project management platform.* Scientific Data 12, 578 (2025). https://doi.org/10.1038/s41597-025-04903-2
 
-The CSVs are not committed to this repo. Download from the link above and place under `csvs/` as:
 
 ```
 csvs/users.csv
