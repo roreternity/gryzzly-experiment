@@ -22,21 +22,17 @@ MIN_TASKS = 4
 LOW_FACTOR = 0.15
 HIGH_FACTOR = 1.70
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-SOURCE_ROOT = Path("/Users/roryqwork/Documents/Workspace/LTRROE_3/ltrroe_rus")
-SOURCE_CODE = SOURCE_ROOT / "main"
-SOURCE_PKL = SOURCE_ROOT / "files" / "ltrroe_real_projects.pkl"
-OUTPUT_CSV = SCRIPT_DIR / "metrics_empirical_triangle_clean_10000.csv"
+BASE_DIR = Path(__file__).resolve().parents[2]
+SOURCE_PKL = BASE_DIR / "outputs" / "ltrroe_real_projects.pkl"
+OUTPUT_CSV = BASE_DIR / "outputs" / "metrics_empirical_triangle_clean_10000.csv"
 
-sys.path.insert(0, str(SOURCE_CODE))
-
-import ltrroe_objects  # noqa: E402
-from algorithms import (  # noqa: E402
+import ltrroe.core.objects as ltrroe_objects  # noqa: E402
+from ltrroe.core.algorithms import (  # noqa: E402
     build_task_slowdown_cache,
     forward_pass_with_random_duration,
     monte_carlo_simulation,
 )
-from ltrroe_objects import Dependency  # noqa: E402
+from ltrroe.core.objects import Dependency  # noqa: E402
 
 
 def percentile(sorted_values: list[float], q: float) -> float:

@@ -1,11 +1,12 @@
 """
-Batch calculation of LTRROE metrics for all valid projects from a pickle file.
-Output: metrics_results_full.csv and a console summary.
+Пакетный расчёт метрик LTRROE для всех валидных проектов из pickle-файла.
+Результат: metrics_results_full.csv и сводка в консоли.
 """
 
 import pickle
 import csv
 import random
+import sys
 from pathlib import Path
 from statistics import mean, median, stdev
 import ltrroe.core.objects as ltrroe_objects
@@ -16,13 +17,13 @@ RANDOM_SEED     = 42
 NUM_SIMULATIONS = 10000
 MIN_TASKS       = 4
 MIN_EMPLOYEES   = 1
-FILES_DIR = Path(__file__).resolve().parents[3] / "outputs"
+FILES_DIR = Path(__file__).resolve().parents[2] / "outputs"
 PROJECTS_PKL    = FILES_DIR / "ltrroe_real_projects.pkl"
 OUTPUT_CSV      = FILES_DIR / "metrics_results_full.csv"
 
 random.seed(RANDOM_SEED)
 
-# Loading
+# Загрузка
 sys.modules.setdefault("models", ltrroe_objects)
 
 with open(PROJECTS_PKL, "rb") as f:
@@ -35,7 +36,7 @@ valid_projects = [
 ]
 print(f"Valid projects:  {len(valid_projects)}")
 
-# CSV fields
+# Поля CSV
 CSV_FIELDS = [
     "project_id",
     "n_tasks", "n_employees", "n_dependencies",
@@ -54,9 +55,9 @@ errors  = []
 
 def normalize_dependencies(project):
     """
-    Return project dependencies as a list of Dependency objects.
-    Older pickle files could store dependencies as a dictionary, a list, or
-    unrelated values.
+    Возвращает зависимости проекта в виде списка объектов Dependency.
+    В более старых pickle-файлах зависимости могли храниться как словарь,
+    список или несвязанные значения.
     """
     deps = project.proj_dependencies
     if isinstance(deps, dict):
@@ -70,13 +71,13 @@ def normalize_dependencies(project):
 
 
 def percentile(sorted_values, q: float):
-    """Simple index-based quantile for an already sorted simulation list."""
+    """Простой квантиль по индексу для уже отсортированного списка симуляций."""
     if not sorted_values:
         return None
     index = min(len(sorted_values) - 1, max(0, int(len(sorted_values) * q)))
     return sorted_values[index]
 
-# Main loop
+# Основной цикл
 for idx, proj in enumerate(valid_projects, 1):
     pid = getattr(proj, 'proj_id', f"proj_{idx}")
     deps = normalize_dependencies(proj)
@@ -90,12 +91,12 @@ for idx, proj in enumerate(valid_projects, 1):
     }
 
     try:
-        # 1. Forward pass
+        # 1. Прямой проход (forward pass)
         early_start, early_finish, task_duration = calculate_schedule(proj)
         det_duration = (max(early_finish.values()) - proj.proj_start_date).days
         row["det_duration_days"] = det_duration
 
-        # 2. Backward pass + critical path
+        # 2. Обратный проход (backward pass) + критический путь
         late_start, late_finish = calculate_backward_pass(proj, early_finish, task_duration)
         cp_tasks = sum(
             1 for tid in proj.proj_tasks
@@ -104,7 +105,7 @@ for idx, proj in enumerate(valid_projects, 1):
         )
         row["critical_path_tasks"] = cp_tasks
 
-        # 3. Average team-efficiency proxy
+        # 3. Прокси-показатель средней эффективности команды
         eff_values = [
             mean(emp.emp_efficiency.values())
             for emp in proj.proj_employees.values()
@@ -112,11 +113,11 @@ for idx, proj in enumerate(valid_projects, 1):
         ]
         row["avg_employee_efficiency"] = round(mean(eff_values), 4) if eff_values else None
 
-        # 4. Monte Carlo
+        # 4. Монте-Карло
         sims = monte_carlo_simulation(proj, num_simulations=NUM_SIMULATIONS)
         if sims:
             s = sorted(sims)
-            # If all simulations returned the same duration, for example 0
+            # Если все симуляции вернули одинаковую длительность, например 0
             if s[0] == s[-1]:
                 row["p10"] = row["p50"] = row["p90"] = s[0]
                 row["schedule_risk_ratio"] = 0.0
@@ -129,7 +130,7 @@ for idx, proj in enumerate(valid_projects, 1):
                 row["p10"] = p10
                 row["p50"] = p50
                 row["p90"] = p90
-                # Avoid division by zero
+                # Избегаем деления на ноль
                 if p50 and p50 > 1e-6:
                     row["schedule_risk_ratio"] = round((p90 - p50) / p50, 4)
                 else:
@@ -152,7 +153,7 @@ for idx, proj in enumerate(valid_projects, 1):
 
 print(f"\nTotal: {len(results)} projects, errors: {len(errors)}")
 
-# Save output
+# Сохранение результата
 with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, extrasaction="ignore")
     writer.writeheader()
@@ -164,7 +165,7 @@ if errors:
     for pid, msg in errors[:10]:
         print(f"  {pid}: {msg}")
 
-# Summary
+# Сводка
 ok = [r for r in results if r["mc_success"]]
 print(f"\n{'='*60}")
 print(f"SUMMARY  ({len(ok)} projects with successful MC out of {len(results)})")

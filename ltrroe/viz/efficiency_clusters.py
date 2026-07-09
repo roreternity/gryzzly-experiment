@@ -1,9 +1,9 @@
 """
-Groups real projects by the team-efficiency proxy.
+Группирует реальные проекты по прокси-показателю эффективности команды.
 
-Builds diagnostic boxplots to inspect how
-avg_employee_efficiency is related to project duration, P50, Schedule Risk Ratio
-and the P50 shift relative to the deterministic estimate.
+Строит диагностические boxplot-графики, чтобы посмотреть, как
+avg_employee_efficiency связана с длительностью проекта, P50, коэффициентом риска расписания (Schedule Risk Ratio)
+и сдвигом P50 относительно детерминированной оценки.
 """
 
 import pandas as pd
@@ -11,21 +11,21 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parents[3]
+BASE_DIR = Path(__file__).resolve().parents[2]
 FILES_DIR = BASE_DIR / "outputs"
-VIS_DIR = BASE_DIR / "figures" / "eng"
+VIS_DIR = BASE_DIR / "figures" / "ru"
 VIS_DIR.mkdir(parents=True, exist_ok=True)
 
 df = pd.read_csv(FILES_DIR / 'metrics_results_full.csv')
 df = df[df['mc_success'] == True].dropna(subset=['avg_employee_efficiency'])
 
-# Grouping
+# Группировка
 df['eff_group'] = pd.cut(df['avg_employee_efficiency'],
                          bins=[0, 1.0, 2.0, float('inf')],
-                         labels=['<1.0 (plan underestimated)', '1.0 (plan = actual)', '>1.0 (plan overestimated)'])
+                         labels=['<1.0 (план занижен)', '1.0 (план = факт)', '>1.0 (план завышен)'])
 
-# Group statistics
-print("\n=== Efficiency-group comparison ===")
+# Статистика по группам
+print("\n=== Сравнение групп эффективности ===")
 for group, sub in df.groupby('eff_group'):
     print(f"\n{group} (n={len(sub)}):")
     print(f"  det_duration days:  mean={sub['det_duration_days'].mean():.1f},  med={sub['det_duration_days'].median():.1f}")
@@ -33,15 +33,15 @@ for group, sub in df.groupby('eff_group'):
     print(f"  schedule_risk_ratio:mean={sub['schedule_risk_ratio'].mean():.3f}, med={sub['schedule_risk_ratio'].median():.3f}")
     print(f"  det_vs_p50_delta:   mean={sub['det_vs_p50_delta'].mean():.2f}, med={sub['det_vs_p50_delta'].median():.2f}")
 
-# Plots
+# Графики
 fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 sns.boxplot(data=df, x='eff_group', y='det_duration_days', ax=axes[0,0])
-axes[0,0].set_title('Deterministic duration')
+axes[0,0].set_title('Детерминированный срок')
 sns.boxplot(data=df, x='eff_group', y='p50', ax=axes[0,1])
-axes[0,1].set_title('Median duration (MC)')
+axes[0,1].set_title('Медианный срок (MC)')
 sns.boxplot(data=df, x='eff_group', y='schedule_risk_ratio', ax=axes[1,0])
-axes[1,0].set_title('Risk ratio (P90-P50)/P50')
+axes[1,0].set_title('Резерв срока (P90-P50)/P50')
 sns.boxplot(data=df, x='eff_group', y='det_vs_p50_delta', ax=axes[1,1])
-axes[1,1].set_title('Deterministic-estimate shift (P50 - det)')
+axes[1,1].set_title('Сдвиг детерминированной оценки (P50 - det)')
 plt.tight_layout()
 plt.savefig(VIS_DIR / 'efficiency_groups.png', dpi=150)

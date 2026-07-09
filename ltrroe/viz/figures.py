@@ -1,6 +1,6 @@
 """
-Generate figures for the Gryzzly dataset.
-Run after metrics_empirical_triangle_clean_10000.csv has been produced.
+Генерация графиков для набора данных Gryzzly.
+Запускать после того, как сгенерирован metrics_empirical_triangle_clean_10000.csv.
 """
 
 import pandas as pd
@@ -23,12 +23,12 @@ plt.rcParams.update({
 BLUE   = '#2563EB'
 ORANGE = '#EA580C'
 GRAY   = '#6B7280'
-BASE_DIR  = Path(__file__).resolve().parents[3]
+BASE_DIR  = Path(__file__).resolve().parents[2]
 FILES_DIR = BASE_DIR / "outputs"
-OUT       = BASE_DIR / "figures" / "eng"
+OUT       = BASE_DIR / "figures" / "ru"
 OUT.mkdir(parents=True, exist_ok=True)
 
-# Load empirical-triangle results and merge in extra columns from the full run
+# Загрузка результатов эмпирического треугольника и объединение с дополнительными столбцами из полного прогона
 df_new = pd.read_csv(FILES_DIR / "metrics_empirical_triangle_clean_10000.csv")
 df_old = pd.read_csv(FILES_DIR / "metrics_results_full.csv")
 
@@ -49,7 +49,7 @@ print(f"Projects for analysis: {len(df)}")
 print(df[['schedule_risk_ratio', 'det_duration_days', 'p50', 'p90',
           'avg_employee_efficiency', 'n_tasks']].describe().round(2))
 
-# Figure A — Schedule risk ratio distribution
+# График A — Распределение коэффициента риска расписания
 fig, ax = plt.subplots(figsize=(8, 4.5))
 
 sns.histplot(df['schedule_risk_ratio'], bins=40, color=BLUE,
@@ -57,58 +57,58 @@ sns.histplot(df['schedule_risk_ratio'], bins=40, color=BLUE,
 
 med   = df['schedule_risk_ratio'].median()
 mean_ = df['schedule_risk_ratio'].mean()
-ax.axvline(med,   color=ORANGE, lw=2,   linestyle='--', label=f'Median = {med:.2f}')
-ax.axvline(mean_, color=GRAY,   lw=1.5, linestyle=':',  label=f'Mean = {mean_:.2f}')
+ax.axvline(med,   color=ORANGE, lw=2,   linestyle='--', label=f'Медиана = {med:.2f}')
+ax.axvline(mean_, color=GRAY,   lw=1.5, linestyle=':',  label=f'Среднее = {mean_:.2f}')
 ax.set_xlim(left=0, right=0.5)
-ax.set_xlabel('Schedule Reserve  (P90 − P50) / P50', labelpad=8)
-ax.set_ylabel('Number of projects')
-ax.set_title('Schedule Reserve Distribution\n(real Gryzzly projects, N = {:,})'.format(len(df)))
+ax.set_xlabel('Резерв срока  (P90 − P50) / P50', labelpad=8)
+ax.set_ylabel('Число проектов')
+ax.set_title('Распределение резерва срока\n(реальные проекты Gryzzly, N = {:,})'.format(len(df)))
 ax.legend()
 fig.savefig(OUT / 'A_risk_distribution.png')
 plt.close()
 print("✓ A_risk_distribution.png")
 
-# Figure B — Deterministic (CPM) estimate vs Monte Carlo P50
+# График B — Детерминированная оценка (CPM) против Monte Carlo P50
 fig, ax = plt.subplots(figsize=(6, 6))
 
 ax.scatter(df['det_duration_days'], df['p50'],
            alpha=0.35, s=20, color=BLUE, edgecolors='none')
 lim = max(df['det_duration_days'].max(), df['p50'].max()) * 1.05
-ax.plot([0, lim], [0, lim], '--', color=GRAY, lw=1.5, label='CPM estimate = P50 (ideal)')
+ax.plot([0, lim], [0, lim], '--', color=GRAY, lw=1.5, label='CPM-оценка = P50 (идеал)')
 
 z  = np.polyfit(df['det_duration_days'], df['p50'], 1)
 p  = np.poly1d(z)
 xs = np.linspace(0, lim, 200)
-ax.plot(xs, p(xs), color=ORANGE, lw=2, label=f'Trend: P50 ≈ {z[0]:.2f} × CPM')
+ax.plot(xs, p(xs), color=ORANGE, lw=2, label=f'Тренд: P50 ≈ {z[0]:.2f} × CPM')
 
-ax.set_xlabel('Deterministic duration (CPM), days')
-ax.set_ylabel('Monte Carlo P50, days')
-ax.set_title('CPM vs Monte Carlo P50\nmedian delta = 0 days')
+ax.set_xlabel('Детерминированный срок (CPM), дней')
+ax.set_ylabel('Monte Carlo P50, дней')
+ax.set_title('CPM vs Monte Carlo P50\nмедианная разница = 0 дней')
 ax.set_xlim(0, lim); ax.set_ylim(0, lim)
 ax.legend()
 fig.savefig(OUT / 'B_det_vs_p50.png')
 plt.close()
 print("✓ B_det_vs_p50.png")
 
-# Figure C — P50 vs P90 uncertainty spread
+# График C — Разброс неопределённости между P50 и P90
 fig, ax = plt.subplots(figsize=(6, 6))
 
 ax.scatter(df['p50'], df['p90'],
            alpha=0.35, s=20, color=BLUE, edgecolors='none')
 lim = max(df['p50'].max(), df['p90'].max()) * 1.05
 ax.plot([0, lim], [0, lim],        '--', color=GRAY,   lw=1.5, label='P50 = P90')
-ax.plot([0, lim], [0, lim * 1.31], ':',  color=ORANGE, lw=1.5, label='+31% buffer')
+ax.plot([0, lim], [0, lim * 1.31], ':',  color=ORANGE, lw=1.5, label='+31% буфер')
 
-ax.set_xlabel('Monte Carlo P50, days')
-ax.set_ylabel('Monte Carlo P90, days')
-ax.set_title('Uncertainty Spread: P50 to P90\nmedian P90/P50 = 1.31×')
+ax.set_xlabel('Monte Carlo P50, дней')
+ax.set_ylabel('Monte Carlo P90, дней')
+ax.set_title('Разброс неопределённости: P50 к P90\nмедиана P90/P50 = 1.31×')
 ax.set_xlim(0, lim); ax.set_ylim(0, lim)
 ax.legend()
 fig.savefig(OUT / 'C_p50_vs_p90.png')
 plt.close()
 print("✓ C_p50_vs_p90.png")
 
-# Figure D — Schedule reserve vs project size
+# График D — Резерв расписания в зависимости от размера проекта
 fig, ax = plt.subplots(figsize=(8, 4.5))
 
 bins   = [2, 4, 7, 11, 16, 25, 160]
@@ -119,28 +119,28 @@ binned = df.groupby('task_bin', observed=True)['schedule_risk_ratio'].agg(
 binned.columns = ['bin', 'median', 'mean', 'count']
 
 ax.bar(binned['bin'], binned['median'], color=BLUE,
-       edgecolor='white', linewidth=0.5, label='Median reserve')
+       edgecolor='white', linewidth=0.5, label='Медианный резерв')
 for i, row in binned.iterrows():
     ax.text(i, row['median'] + 0.003, f'n={int(row["count"])}',
             ha='center', va='bottom', fontsize=9, color=GRAY)
 
 ax.axhline(df['schedule_risk_ratio'].median(), color=ORANGE,
-           lw=1.5, linestyle='--', label='Overall median')
-ax.set_xlabel('Number of tasks in project')
-ax.set_ylabel('Schedule reserve (median)')
-ax.set_title('Schedule Reserve by Project Size')
+           lw=1.5, linestyle='--', label='Общая медиана')
+ax.set_xlabel('Число задач в проекте')
+ax.set_ylabel('Резерв срока (медиана)')
+ax.set_title('Резерв срока по размеру проекта')
 ax.legend()
 fig.savefig(OUT / 'D_risk_vs_size.png')
 plt.close()
 print("✓ D_risk_vs_size.png")
 
-# Figure F — Spearman correlation matrix
+# График F — Матрица корреляции Спирмена
 corr_cols = ['n_tasks', 'n_employees', 'n_dependencies',
              'critical_path_tasks', 'avg_employee_efficiency',
              'det_duration_days', 'schedule_risk_ratio']
 corr   = df[corr_cols].corr(method='spearman')
-labels = ['Tasks', 'Employees', 'Dependencies',
-          'Critical path', 'Efficiency', 'CPM duration', 'Reserve']
+labels = ['Задачи', 'Сотрудники', 'Зависимости',
+          'Крит. путь', 'Эффективность', 'CPM срок', 'Резерв']
 
 fig, ax = plt.subplots(figsize=(7, 6))
 mask = np.triu(np.ones_like(corr, dtype=bool), k=1)
@@ -148,7 +148,7 @@ sns.heatmap(corr, mask=mask, annot=True, fmt='.2f', cmap='RdBu_r',
             center=0, vmin=-1, vmax=1, linewidths=0.5,
             xticklabels=labels, yticklabels=labels,
             annot_kws={'size': 9}, ax=ax)
-ax.set_title('Spearman Rank Correlation\n(real dataset)', pad=10)
+ax.set_title('Ранговая корреляция Спирмена\n(реальный датасет)', pad=10)
 plt.xticks(rotation=35, ha='right')
 fig.savefig(OUT / 'F_spearman_correlation.png')
 plt.close()

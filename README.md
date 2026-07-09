@@ -1,88 +1,89 @@
-# Gryzzly Schedule Risk Analysis
+# Анализ календарного риска на данных Gryzzly
 
-Technical report on an unsuccessful attempt to validate a stochastic project scheduling model on real-world time-tracking data from the public [Gryzzly dataset](https://doi.org/10.1038/s41597-025-04903-2) (Abitbol & Arod, *Scientific Data*, 2025).
+Технический отчёт о неудачной попытке валидировать стохастическую модель проектного планирования на реальных данных тайм-трекинга из публичного [датасета Gryzzly](https://doi.org/10.1038/s41597-025-04903-2) (Abitbol & Arod, *Scientific Data*, 2025).
 
-The experiment did not yield results suitable for the main research paper, but produced:
+Эксперимент не дал результатов, пригодных для основной научной статьи, но привёл к следующему:
 
-- A complete data processing and simulation pipeline (CPM + Monte Carlo on real project graphs)
-- Clear empirical evidence of the limitations of project-level aggregate features for risk prediction
-- Concrete lessons that motivated the subsequent shift to a synthetic-data approach
+- Полноценный пайплайн обработки данных и симуляции (CPM + Монте-Карло на реальных графах проектов)
+- Чёткое эмпирическое подтверждение ограничений агрегированных признаков проекта для предсказания риска
+- Конкретные выводы, которые обосновали последующий переход к синтетическим данным
 
-This repo is preserved as a standalone technical record. The main research paper uses synthetic data and references these findings as the motivation for that design choice.
-
----
-
-## What this is
-
-A pipeline that imports raw project-management CSVs, constructs task-dependency graphs, runs CPM and Monte Carlo simulation, and tests whether aggregate project features can predict two things:
-
-1. The typical project duration (Monte Carlo P50)
-2. The schedule reserve required for a pessimistic scenario — (P90 − P50) / P50
-
-The answer to (1) is yes. The answer to (2) is essentially no, and that is the central result.
+Этот репозиторий сохранён как самостоятельный технический документ. Основная научная статья использует синтетические данные и ссылается на эти результаты как на обоснование такого выбора.
 
 ---
 
-## Key findings
+## Что это такое
 
-On **1 590 real projects** (filtered from 71 792 by data-quality criteria: elapsed/planned ratio ≤ 2×, 1–2 000 planned hours, ≥ 3 tasks and ≥ 3 dependencies), with **10 000 Monte Carlo iterations** per project:
+Пайплайн, который импортирует «сырые» CSV с данными проектного управления, строит графы зависимостей задач, запускает CPM и симуляцию Монте-Карло, и проверяет, могут ли агрегированные признаки проекта предсказать две вещи:
 
-| Metric | Value |
+1. Типичный срок проекта (медиана Монте-Карло, P50)
+2. Резерв срока, необходимый для пессимистичного сценария — (P90 − P50) / P50
+
+Ответ на (1) — да. Ответ на (2) — практически нет, и это главный результат.
+
+---
+
+## Ключевые результаты
+
+На **1 590 реальных проектах** (отобрано из 71 792 по критериям качества данных: соотношение факт/план ≤ 2×, от 1 до 2 000 плановых часов, ≥ 3 задачи и ≥ 3 зависимости), с **10 000 итераций Монте-Карло** на проект:
+
+| Показатель | Значение |
 |---|---|
-| Projects after filtering | 1 590 |
-| CPM estimate, median | 12 days |
-| P50 / P90, median | 12 / 16 days |
-| Schedule reserve (P90 vs CPM) | **+31%** |
-| CPM − P50 delta, median | 0 days |
-| R² — duration prediction (RF, test set) | 0.327 |
-| R² — reserve prediction (RF, test set) | **0.008** |
+| Проектов после фильтрации | 1 590 |
+| CPM-оценка, медиана | 12 дней |
+| P50 / P90, медиана | 12 / 16 дней |
+| Резерв срока (P90 к CPM) | **+31%** |
+| Разница CPM − P50, медиана | 0 дней |
+| R² — предсказание срока (RF, тест) | 0,327 |
+| R² — предсказание резерва (RF, тест) | **0,008** |
 
-### The main negative result
+### Главный отрицательный результат
 
-**Aggregate project features cannot predict schedule reserve.** A Random Forest trained on `n_tasks`, `n_employees`, `n_dependencies`, `critical_path_tasks`, and `avg_employee_efficiency` achieves R² = 0.008 on the test set for predicting (P90 − P50) / P50. Five-fold cross-validation gives R² ≈ 0.04 — effectively zero. The same feature set explains duration moderately well (R² = 0.327 on test, ≈ 0.20 on CV), which confirms the problem is structural rather than a data issue.
+**Агрегированные признаки проекта не позволяют предсказать резерв срока.** Случайный лес, обученный на `n_tasks`, `n_employees`, `n_dependencies`, `critical_path_tasks` и `avg_employee_efficiency`, даёт R² = 0,008 на тестовой выборке при предсказании (P90 − P50) / P50. 5-блочная кросс-валидация даёт R² ≈ 0,04 — фактически ноль. Тот же набор признаков умеренно хорошо объясняет срок (R² = 0,327 на тесте, ≈ 0,20 на CV), что подтверждает: проблема структурная, а не в данных.
 
-The interpretation: aggregate features reflect project *scale*, but schedule reserve is driven by *topology* — the structure of the critical path and its sensitivity to task-level uncertainty. Two projects with identical aggregate statistics can have very different risk profiles depending on how their dependency graphs are shaped.
+Интерпретация: агрегированные признаки отражают *масштаб* проекта, но резерв срока определяется *топологией* — структурой критического пути и его чувствительностью к неопределённости на уровне отдельных задач. Два проекта с одинаковой агрегированной статистикой могут иметь совершенно разные профили риска в зависимости от формы их графа зависимостей.
 
-### Secondary findings
+### Второстепенные результаты
 
-- **CPM ≈ P50.** The deterministic critical-path estimate coincides with the Monte Carlo median for 52% of projects (0-day difference). This is expected: the mean of the triangular distribution Triangular(0.15T, T, 1.73T) ≈ 0.96T, and by the Central Limit Theorem the sum along the critical path converges to the sum of means, which is approximately the CPM estimate.
-- **The 31% reserve exists and is consistent.** P90 exceeds CPM by a median of 31%, concentrated in the 0.28–0.35 range. The reserve is real and non-trivial — it is simply not predictable from project-level aggregates.
-- **R² for duration is inflated.** The `avg_employee_efficiency` feature is computed from the same task declarations as the target variable. Without it, R² for duration drops to ≈ 0.09, which means R² = 0.327 should be treated as an upper bound.
+- **CPM ≈ P50.** Детерминированная оценка по методу критического пути совпадает с медианой Монте-Карло для 52% проектов (разница 0 дней). Это ожидаемо: среднее треугольного распределения Треуг(0,15T, T, 1,73T) ≈ 0,96T, и по центральной предельной теореме сумма по критическому пути сходится примерно к CPM-оценке.
+- **Резерв в 31% реален и устойчив.** P90 превышает CPM-оценку в среднем на 31%, значения сосредоточены в диапазоне 0,28–0,35. Резерв реален и нетривиален — он просто не предсказывается по агрегированным признакам проекта.
+- **R² для срока завышен.** Признак `avg_employee_efficiency` вычисляется из тех же деклараций задач, что и целевая переменная. Без него R² для срока падает до ≈ 0,09, поэтому R² = 0,327 следует считать верхней оценкой.
 
-### Why this led to a synthetic approach
+### Почему это привело к синтетическому подходу
 
-Real data constraints — no workload history per period, unresolvable confounding between efficiency and planning quality, inability to control topology — make it impossible to cleanly test the model on this dataset. The subsequent work uses synthetic projects with controlled graph structure, which is the only setup that allows fair attribution of risk to specific causal factors.
+Ограничения реальных данных — отсутствие истории загрузки по периодам, неразрешимая смешанность эффективности и качества планирования, невозможность контролировать топологию графа — делают невозможной чистую проверку модели на этом датасете. Дальнейшая работа использует синтетические проекты с контролируемой структурой графа — единственный способ корректно приписать риск конкретным причинным факторам.
 
 ---
 
-## Repo layout
+## Структура репозитория
 
 ```
-gryzzly_dataset/
+gryzzly-experiment/
 │
-├── ltrroe/                      # installable package — pip install -e .
+├── ltrroe/                      # устанавливаемый пакет — pip install -e .
 │   ├── core/
-│   │   ├── objects.py           # Project, Task, Employee, Dependency data model
-│   │   └── algorithms.py        # CPM forward/backward pass, Monte Carlo simulation
+│   │   ├── objects.py           # модель данных: Project, Task, Employee, Dependency
+│   │   └── algorithms.py        # прямой/обратный проход CPM, симуляция Монте-Карло
 │   ├── pipeline/
-│   │   ├── import_data.py       # CSV → model objects (filtering + PERT calibration)
-│   │   └── run_simulations.py   # Batch CPM + MC → outputs/metrics_results_full.csv
+│   │   ├── import_data.py       # CSV → объекты модели (фильтрация + калибровка PERT)
+│   │   └── run_simulations.py   # пакетный CPM + MC → outputs/metrics_results_full.csv
 │   ├── ml/
-│   │   ├── rf_duration.py       # Random Forest: predict deterministic duration
-│   │   └── rf_risk.py           # Random Forest: predict schedule risk ratio
+│   │   ├── rf_duration.py       # случайный лес: предсказание детерминированного срока
+│   │   └── rf_risk.py           # случайный лес: предсказание резерва срока
 │   ├── viz/
-│   │   ├── figures.py           # Main figures A–F → figures/eng/
+│   │   ├── figures.py           # основные графики A–F → figures/eng/ или figures/ru/
 │   │   └── efficiency_clusters.py
 │   └── experiments/
-│       └── empirical_triangle.py   # Sensitivity test: empirical PERT bounds
+│       └── empirical_triangle.py   # проверка чувствительности: эмпирические границы PERT
 │
 ├── figures/
-│   └── eng/                     # Committed output figures (English)
+│   ├── eng/                     # графики на английском (сохранены в репозитории)
+│   └── ru/                      # графики на русском (сохранены в репозитории)
 │
-├── csvs/                        # Raw Gryzzly CSVs — gitignored
-├── outputs/                     # Generated pickles and CSVs — gitignored
+├── csvs/                        # «сырые» CSV Gryzzly — в .gitignore
+├── outputs/                     # сгенерированные pickle и CSV — в .gitignore
 │
-├── Makefile                     # Run pipeline in order: make all
+├── Makefile                     # запуск пайплайна по порядку: make all
 ├── pyproject.toml
 ├── LICENSE
 └── README.md
@@ -90,9 +91,9 @@ gryzzly_dataset/
 
 ---
 
-## Pipeline
+## Пайплайн
 
-The scripts run in sequence. Each step produces a file that the next step consumes.
+Скрипты запускаются последовательно. Каждый шаг производит файл, который потребляет следующий шаг.
 
 ```
 csvs/
@@ -105,16 +106,16 @@ csvs/
         │
         ▼
   ltrroe.pipeline.import_data
-        │  Filters projects by quality criteria
-        │  Builds PERT triplets per task (a=0.15m, m, b=1.70m)
-        │  Computes employee efficiency proxy from declarations
+        │  Фильтрует проекты по критериям качества
+        │  Строит тройки PERT для каждой задачи (a=0,15m, m, b=1,70m)
+        │  Вычисляет прокси-эффективность сотрудника по декларациям
         │
         ▼  outputs/ltrroe_real_projects.pkl
         │
   ltrroe.pipeline.run_simulations
-        │  CPM forward/backward pass per project
-        │  10 000 Monte Carlo iterations per project
-        │  Outputs P10 / P50 / P90 / schedule_risk_ratio
+        │  Прямой/обратный проход CPM по каждому проекту
+        │  10 000 итераций Монте-Карло на проект
+        │  Выдаёт P10 / P50 / P90 / schedule_risk_ratio
         │
         ▼  outputs/metrics_results_full.csv
        ╱│╲
@@ -124,39 +125,39 @@ csvs/
  figs  dur  risk
 ```
 
-### Step 1 — Import data
+### Шаг 1 — импорт данных
 
 ```bash
 python -m ltrroe.pipeline.import_data
 ```
 
-Reads the six CSVs from `csvs/`, applies filters, builds PERT duration triplets per task, computes `avg_employee_efficiency` (planned / elapsed ratio per primary assignee), and serialises all valid projects to `outputs/ltrroe_real_projects.pkl`.
+Читает шесть CSV из `csvs/`, применяет фильтры, строит тройки PERT для каждой задачи, вычисляет `avg_employee_efficiency` (отношение плановой к фактической длительности для основного исполнителя) и сериализует все валидные проекты в `outputs/ltrroe_real_projects.pkl`.
 
-### Step 2 — Run simulations
+### Шаг 2 — запуск симуляций
 
 ```bash
 python -m ltrroe.pipeline.run_simulations
 ```
 
-Loads the pickle, runs CPM + 10 000 MC iterations per project, and writes `outputs/metrics_results_full.csv` with columns: `n_tasks`, `n_employees`, `n_dependencies`, `det_duration_days`, `p10`, `p50`, `p90`, `schedule_risk_ratio`, `det_vs_p50_delta`, `critical_path_tasks`, `avg_employee_efficiency`.
+Загружает pickle, запускает CPM + 10 000 итераций MC на проект и записывает `outputs/metrics_results_full.csv` со столбцами: `n_tasks`, `n_employees`, `n_dependencies`, `det_duration_days`, `p10`, `p50`, `p90`, `schedule_risk_ratio`, `det_vs_p50_delta`, `critical_path_tasks`, `avg_employee_efficiency`.
 
-### Step 3 — Generate figures
+### Шаг 3 — генерация графиков
 
 ```bash
 python -m ltrroe.viz.figures
 ```
 
-Produces figures A–F in `figures/eng/`:
+Генерирует графики A–F в `figures/eng/` (или `figures/ru/`, в зависимости от языка вывода):
 
-| Figure | Description |
+| График | Описание |
 |---|---|
-| A | Distribution of schedule risk ratio (P90−P50)/P50 |
-| B | CPM duration vs Monte Carlo P50 (scatter + regression) |
-| C | P50 vs P90 uncertainty spread |
-| D | Median risk ratio by project size (task-count bins) |
-| F | Spearman correlation matrix |
+| A | Распределение относительного резерва срока (P90−P50)/P50 |
+| B | CPM-срок против медианы Монте-Карло (диаграмма рассеяния + регрессия) |
+| C | Разброс неопределённости P50 к P90 |
+| D | Медианный резерв по размеру проекта (бины по числу задач) |
+| F | Корреляционная матрица Спирмена |
 
-### Step 4 — ML experiments (optional)
+### Шаг 4 — ML-эксперименты (опционально)
 
 ```bash
 python -m ltrroe.ml.rf_duration
@@ -164,57 +165,59 @@ python -m ltrroe.ml.rf_risk
 python -m ltrroe.viz.efficiency_clusters
 ```
 
-### Sensitivity test
+### Проверка чувствительности
 
 ```bash
 python -m ltrroe.experiments.empirical_triangle
 ```
 
-Re-runs simulations with empirically calibrated PERT bounds (low=0.15×, high=1.70× from real fact/plan percentiles) instead of the default bounds. Outputs `dataset_test/metrics_empirical_triangle_clean_10000.csv` for comparison.
+Повторяет симуляции с эмпирически откалиброванными границами PERT (low=0,15×, high=1,70× от реальных перцентилей факт/план) вместо границ по умолчанию. Результат — `outputs/metrics_empirical_triangle_clean_10000.csv` для сравнения.
 
 ---
 
-## Output figures
+## Графики
 
-### Main analysis (pipeline/6_visualisation.py)
+### Основной анализ
 
 <table>
 <tr>
-<td><img src="figures/eng/A_risk_distribution.png" width="380"/><br><sub>A — Schedule reserve distribution</sub></td>
-<td><img src="figures/eng/D_risk_vs_size.png" width="380"/><br><sub>D — Reserve by project size</sub></td>
+<td><img src="figures/ru/A_risk_distribution.png" width="380"/><br><sub>A — Распределение резерва срока</sub></td>
+<td><img src="figures/ru/D_risk_vs_size.png" width="380"/><br><sub>D — Резерв по размеру проекта</sub></td>
 </tr>
 <tr>
-<td><img src="figures/eng/B_det_vs_p50.png" width="300"/><br><sub>B — CPM vs Monte Carlo P50</sub></td>
-<td><img src="figures/eng/C_p50_vs_p90.png" width="300"/><br><sub>C — P50 vs P90 spread</sub></td>
+<td><img src="figures/ru/B_det_vs_p50.png" width="300"/><br><sub>B — CPM против медианы Монте-Карло</sub></td>
+<td><img src="figures/ru/C_p50_vs_p90.png" width="300"/><br><sub>C — Разброс P50 к P90</sub></td>
 </tr>
 <tr>
-<td><img src="figures/eng/F_spearman_correlation.png" width="340"/><br><sub>F — Spearman correlation matrix</sub></td>
+<td><img src="figures/ru/F_spearman_correlation.png" width="340"/><br><sub>F — Корреляционная матрица Спирмена</sub></td>
+<td><img src="figures/ru/E_summary_table.png" width="340"/><br><sub>E — Сводная таблица показателей</sub></td>
 </tr>
 </table>
 
-### Random Forest diagnostics (pipeline/4_rf_duration.py, pipeline/5_rf_risk.py)
+### Диагностика случайного леса
 
 <table>
 <tr>
-<td><img src="figures/eng/rf_duration_actual_vs_predicted.png" width="300"/><br><sub>Duration — actual vs predicted</sub></td>
-<td><img src="figures/eng/rf_duration_feature_importance.png" width="300"/><br><sub>Duration — feature importance</sub></td>
-<td><img src="figures/eng/rf_duration_error_distribution.png" width="300"/><br><sub>Duration — error distribution</sub></td>
+<td><img src="figures/ru/rf_duration_actual_vs_predicted.png" width="300"/><br><sub>Срок — факт против предсказания</sub></td>
+<td><img src="figures/ru/rf_duration_feature_importance.png" width="300"/><br><sub>Срок — важность признаков</sub></td>
+<td><img src="figures/ru/rf_duration_error_distribution.png" width="300"/><br><sub>Срок — распределение ошибок</sub></td>
 </tr>
 <tr>
-<td><img src="figures/eng/rf_risk_actual_vs_predicted.png" width="300"/><br><sub>Reserve — actual vs predicted</sub></td>
-<td><img src="figures/eng/rf_risk_feature_importance.png" width="300"/><br><sub>Reserve — feature importance</sub></td>
-<td><img src="figures/eng/rf_risk_error_distribution.png" width="300"/><br><sub>Reserve — error distribution</sub></td>
+<td><img src="figures/ru/rf_risk_actual_vs_predicted.png" width="300"/><br><sub>Резерв — факт против предсказания</sub></td>
+<td><img src="figures/ru/rf_risk_feature_importance.png" width="300"/><br><sub>Резерв — важность признаков</sub></td>
+<td><img src="figures/ru/rf_risk_error_distribution.png" width="300"/><br><sub>Резерв — распределение ошибок</sub></td>
 </tr>
 </table>
 
 ---
 
-## Data
+## Данные
 
-The raw data is the **Gryzzly public dataset**:
+Исходные данные — **публичный датасет Gryzzly**:
 
 > Abitbol, J.L., Arod, L. *Seven years of time-tracking data from a project management platform.* Scientific Data 12, 578 (2025). https://doi.org/10.1038/s41597-025-04903-2
 
+CSV-файлы не включены в репозиторий. Скачайте по ссылке выше и разместите в `csvs/`:
 
 ```
 csvs/users.csv
@@ -227,19 +230,19 @@ csvs/declarations.csv
 
 ---
 
-## Setup
+## Установка
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
 ```
 
-Python 3.10+.
+Требуется Python 3.10+.
 
 ---
 
-## License
+## Лицензия
 
-MIT — see [LICENSE](LICENSE).
+MIT — см. [LICENSE](LICENSE).
 
-The Gryzzly dataset is distributed under its own license; see the Scientific Data paper for terms.
+Датасет Gryzzly распространяется на собственных условиях лицензирования; см. статью в Scientific Data.

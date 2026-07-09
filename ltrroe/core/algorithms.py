@@ -1,6 +1,6 @@
 """
-LTRROE calculation core: scheduling and risk-analysis algorithms
-Implements forward/backward passes, Monte Carlo simulation, and human-factor adjustments
+Ядро расчётов LTRROE: алгоритмы планирования и анализа рисков
+Реализует прямой/обратный проходы, симуляцию Монте-Карло и корректировки на человеческий фактор
 """
 
 from datetime import timedelta
@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple
 
 def _iter_dependencies(project):
     """
-    Return dependencies regardless of whether they are stored as a list or a dictionary.
+    Возвращает зависимости независимо от того, хранятся ли они в виде списка или словаря.
     """
     dependencies = project.proj_dependencies
     if isinstance(dependencies, dict):
@@ -18,7 +18,7 @@ def _iter_dependencies(project):
 
 def get_predecessors(project, task_id: int) -> List[int]:
     """
-    Find all task predecessors
+    Найти всех предшественников задачи
     """
     preds = []
     for dep in _iter_dependencies(project):
@@ -28,71 +28,71 @@ def get_predecessors(project, task_id: int) -> List[int]:
 
 def calculate_slowdown_factor(employee, task) -> float:
     """
-    Calculate the slowdown factor for an employee on a task
-    Based on skill mismatch and workload.
-    If efficiency is above 1, the multiplier drops below 1 and the task becomes faster.
+    Рассчитать коэффициент замедления для сотрудника на задаче
+    На основе несоответствия навыков и загрузки.
+    Если эффективность выше 1, множитель становится меньше 1 и задача выполняется быстрее.
     """
     required_skills = task.task_skills or []
     employee_skills = employee.emp_skills or []
 
-    # Check missing skills
+    # Проверяем недостающие навыки
     missing_skills = [skill for skill in required_skills if skill not in employee_skills]
     missing_count = len(missing_skills)
     total_count = len(required_skills)
 
-    # No skill penalty when the task has no required skills
+    # Нет штрафа за навыки, если у задачи нет требуемых навыков
     if total_count == 0:
         skill_slowdown = 1.0
-    # All required skills are missing
+    # Отсутствуют все требуемые навыки
     elif missing_count == total_count:
-        skill_slowdown = 3.0  # Very slow; poor fit for the task
+        skill_slowdown = 3.0  # Очень медленно; плохое соответствие задаче
 
-    # Some required skills are missing
+    # Отсутствуют некоторые требуемые навыки
     elif missing_count > 0:
         missing_ratio = missing_count / total_count
         base_penalty = 2.0
 
-        # Base penalty of 2.0 plus an extra penalty for the missing-skill share
+        # Базовый штраф 2.0 плюс дополнительный штраф за долю недостающих навыков
         additional_penalty = missing_ratio * 1.0
         skill_slowdown = base_penalty + additional_penalty
     else:
-        # Find the minimum efficiency across required skills
+        # Находим минимальную эффективность среди требуемых навыков
         efficiencies = []
         for skill in required_skills:
-            # Use the employee efficiency for this skill, defaulting to 0.20
+            # Используем эффективность сотрудника по этому навыку, по умолчанию 0.20
             efficiency = (employee.emp_efficiency or {}).get(skill, 0.20)
             efficiencies.append(efficiency)
-        
+
         min_efficiency = max(min(efficiencies), 0.01)
-        
-        # Skill slowdown factor
+
+        # Коэффициент замедления по навыкам
         skill_slowdown = 1.0 / min_efficiency
-    
-    # Overload slowdown factor, if any
+
+    # Коэффициент замедления из-за перегрузки, если есть
     overload_slowdown = 1.0
     if employee.emp_current_load > employee.emp_max_daily_hours:
         overload = employee.emp_current_load - employee.emp_max_daily_hours
-        # +5% for each excess hour
+        # +5% за каждый избыточный час
         overload_slowdown = 1.0 + (overload * 0.05)
-    
-    # Total slowdown factor
+
+    # Итоговый коэффициент замедления
     total_slowdown = skill_slowdown * overload_slowdown
     
     return total_slowdown
 
 def calculate_task_duration(task, project=None) -> float:
     """
-    Calculate task duration adjusted for assignee performance
-    Uses the PERT formula for the baseline estimate
+    Рассчитать длительность задачи с учётом производительности исполнителя
+    Использует формулу PERT для базовой оценки
     """
-    # Baseline duration: PERT weighted average
+    # Базовая длительность: взвешенное среднее PERT
     base_duration = (task.task_duration_dist[0] + task.task_duration_dist[1] * 4 + task.task_duration_dist[2]) / 6
-    
-    # Return baseline duration if the project or assignment is missing
+
+    # Возвращаем базовую длительность, если проект или назначение отсутствуют
     if project is None or not task.task_assigned_to:
         return base_duration
-    
-    # Safely get the primary assignee
+
+    # Безопасно получаем основного исполнителя
     try:
         primary_emp_id = task.task_assigned_to[0]
         employee = project.proj_employees.get(primary_emp_id)
@@ -108,12 +108,12 @@ def calculate_task_duration(task, project=None) -> float:
 
 def calculate_schedule(project) -> Tuple[Dict, Dict, Dict]:
     """
-    Run the forward pass to calculate early start and finish dates
-    Returns early_start, early_finish, and task_duration dictionaries
+    Выполнить прямой проход для расчёта ранних дат начала и окончания
+    Возвращает словари early_start, early_finish и task_duration
     """
-    task_duration = {}  # task_id -> duration in days
-    
-    # Calculate duration for each task
+    task_duration = {}  # task_id -> длительность в днях
+
+    # Рассчитываем длительность для каждой задачи
     for task_id, task in project.proj_tasks.items():
         task_duration[task_id] = calculate_task_duration(task, project)
     
@@ -123,56 +123,56 @@ def calculate_schedule(project) -> Tuple[Dict, Dict, Dict]:
 
 def _forward_pass(project, task_duration: Dict) -> Tuple[Dict, Dict]:
     """
-    Shared forward pass for deterministic and random task durations.
-    Returns early_start and early_finish dictionaries
+    Общий прямой проход для детерминированных и случайных длительностей задач.
+    Возвращает словари early_start и early_finish
     """
-    early_start = {}  # task_id -> start date
-    early_finish = {}  # task_id -> finish date
+    early_start = {}  # task_id -> дата начала
+    early_finish = {}  # task_id -> дата окончания
     processed = set()
-    
+
     while len(processed) < len(project.proj_tasks):
         progress = False
-        
+
         for task_id in project.proj_tasks.keys():
             if task_id in processed:
                 continue
-            
-            # Find predecessors
+
+            # Находим предшественников
             preds = get_predecessors(project, task_id)
-            
-            # Check whether this task can be processed
+
+            # Проверяем, можно ли обработать эту задачу
             if not preds or all(p in processed for p in preds):
-                # Determine start date
+                # Определяем дату начала
                 if not preds:
-                    # No dependencies: start at the project start date
+                    # Нет зависимостей: начинаем с даты начала проекта
                     start_date = project.proj_start_date
                 else:
-                    # With dependencies: start after the latest predecessor finish
+                    # С зависимостями: начинаем после самого позднего окончания предшественника
                     max_finish_date = max(early_finish[p] for p in preds)
                     start_date = max_finish_date
-                
-                # Calculate finish date
+
+                # Рассчитываем дату окончания
                 duration_days = task_duration[task_id]
                 finish_date = start_date + timedelta(days=duration_days)
-                
-                # Store results
+
+                # Сохраняем результаты
                 early_start[task_id] = start_date
                 early_finish[task_id] = finish_date
                 processed.add(task_id)
                 progress = True
-        
+
         if not progress:
             unresolved = sorted(set(project.proj_tasks) - processed)
             raise ValueError(
                 "Cannot run the forward pass: check for cycles "
                 f"or missing dependencies. Unresolved tasks: {unresolved}"
             )
-    
+
     return early_start, early_finish
 
 def get_successors(project, task_id: int) -> List[int]:
     """
-    Find all task successors
+    Найти всех последователей задачи
     """
     successors = []
     for dep in _iter_dependencies(project):
@@ -182,43 +182,43 @@ def get_successors(project, task_id: int) -> List[int]:
 
 def calculate_backward_pass(project, early_finish: Dict, task_duration: Dict) -> Tuple[Dict, Dict]:
     """
-    Run the backward pass to calculate late start and finish dates
-    Returns late_start and late_finish dictionaries
+    Выполнить обратный проход для расчёта поздних дат начала и окончания
+    Возвращает словари late_start и late_finish
     """
     late_start = {}
     late_finish = {}
-    
-    # Project deadline, without an additional buffer
+
+    # Крайний срок проекта, без дополнительного буфера
     project_deadline = max(early_finish.values())
-    
-    # Initialize late-finish dates for terminal tasks
+
+    # Инициализируем поздние даты окончания для конечных задач
     for task_id in project.proj_tasks.keys():
         succs = get_successors(project, task_id)
         if not succs:
             late_finish[task_id] = project_deadline
-    
-    # Process tasks in descending early_finish order
-    tasks_sorted = sorted(project.proj_tasks.items(), 
-                         key=lambda x: early_finish[x[0]], 
+
+    # Обрабатываем задачи в порядке убывания early_finish
+    tasks_sorted = sorted(project.proj_tasks.items(),
+                         key=lambda x: early_finish[x[0]],
                          reverse=True)
-    
+
     for task_id, task in tasks_sorted:
         succs = get_successors(project, task_id)
-        
+
         if succs:
-            # Find the minimum late start among successors
+            # Находим минимальное позднее начало среди последователей
             min_late_start = min(late_start.get(s, project_deadline) for s in succs)
             late_finish[task_id] = min_late_start
-        
-        # Calculate late start
+
+        # Рассчитываем позднее начало
         late_start[task_id] = late_finish[task_id] - timedelta(days=task_duration[task_id])
     
     return late_start, late_finish
 
 def random_triangular(low: float, most_likely: float, high: float) -> float:
     """
-    Generate a random value from a triangular distribution
-    Used for PERT simulation
+    Сгенерировать случайное значение из треугольного распределения
+    Используется для симуляции PERT
     """
     if high == low:
         return low
@@ -237,7 +237,7 @@ def random_triangular(low: float, most_likely: float, high: float) -> float:
     elif u == 1:
         return high
     
-    # Normalize most_likely
+    # Нормализуем most_likely
     c = (most_likely - low) / (high - low)
     
     if u < c:
@@ -247,17 +247,17 @@ def random_triangular(low: float, most_likely: float, high: float) -> float:
 
 def forward_pass_with_random_duration(project, random_duration: Dict) -> Dict:
     """
-    Run the forward pass with stochastic task durations
-    Returns the early_finish dictionary for one simulation
+    Выполнить прямой проход со случайными длительностями задач
+    Возвращает словарь early_finish для одной симуляции
     """
     _, early_finish = _forward_pass(project, random_duration)
     return early_finish
 
 def build_task_slowdown_cache(project) -> Dict:
     """
-    Precompute task slowdown using the primary assignee.
-    This coefficient stays fixed inside Monte Carlo, so it does not need to be
-    recomputed in every simulation.
+    Предварительно вычислить замедление задачи с использованием основного исполнителя.
+    Этот коэффициент остаётся неизменным внутри Монте-Карло, поэтому его не нужно
+    пересчитывать в каждой симуляции.
     """
     task_slowdowns = {}
 
@@ -278,27 +278,27 @@ def monte_carlo_simulation(
     task_slowdowns: Dict = None
 ) -> List[float]:
     """
-    Monte Carlo simulation for project-risk estimation
-    Returns a list of project durations from all simulations
+    Симуляция Монте-Карло для оценки рисков проекта
+    Возвращает список длительностей проекта по всем симуляциям
     """
     project_durations = []
     if task_slowdowns is None:
         task_slowdowns = build_task_slowdown_cache(project)
-    
+
     for sim in range(num_simulations):
         random_durations = {}
-        
+
         for task_id, task in project.proj_tasks.items():
-            # Generate baseline random duration
+            # Генерируем базовую случайную длительность
             low, most_likely, high = task.task_duration_dist
             base_random = random_triangular(low, most_likely, high)
-            
-            # Adjust for assignee performance
+
+            # Корректируем с учётом производительности исполнителя
             adjusted_duration = base_random * task_slowdowns.get(task_id, 1.0)
-            
+
             random_durations[task_id] = adjusted_duration
-        
-        # Run the forward pass with random durations
+
+        # Выполняем прямой проход со случайными длительностями
         early_finish = forward_pass_with_random_duration(project, random_durations)
         
         if early_finish:
