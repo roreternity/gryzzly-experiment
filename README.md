@@ -190,7 +190,6 @@ python -m ltrroe.experiments.empirical_triangle
 </tr>
 <tr>
 <td><img src="figures/ru/F_spearman_correlation.png" width="340"/><br><sub>F — Корреляционная матрица Спирмена</sub></td>
-<td><img src="figures/ru/E_summary_table.png" width="340"/><br><sub>E — Сводная таблица показателей</sub></td>
 </tr>
 </table>
 
@@ -216,17 +215,6 @@ python -m ltrroe.experiments.empirical_triangle
 Исходные данные — **публичный датасет Gryzzly**:
 
 > Abitbol, J.L., Arod, L. *Seven years of time-tracking data from a project management platform.* Scientific Data 12, 578 (2025). https://doi.org/10.1038/s41597-025-04903-2
-
-CSV-файлы не включены в репозиторий. Скачайте по ссылке выше и разместите в `csvs/`:
-
-```
-csvs/users.csv
-csvs/projects.csv
-csvs/projects_computed.csv
-csvs/tasks.csv
-csvs/tasks_computed.csv
-csvs/declarations.csv
-```
 
 ---
 
